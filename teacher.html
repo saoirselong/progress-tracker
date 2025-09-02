@@ -56,9 +56,9 @@
     .bar-segment {
       flex:1 1 18%;
       min-width: 60px;
-      height: 40px;
+      height: 50px;
       border-radius: 8px;
-      color: white;
+      color: black; /* All text black */
       font-weight: bold;
       display: flex;
       justify-content: center;
@@ -66,8 +66,11 @@
       text-align: center;
       font-size: 12px;
       margin: 2px;
+      padding: 5px;
       box-sizing:border-box;
     }
+    .bar-segment.four { background:#2ecc71; }      /* light green */
+    .bar-segment.five { background:#27ae60; }     /* dark green */
     #dashboard {
       width:100%;
       display:flex;
@@ -90,6 +93,7 @@
       border:1px solid #ddd;
       padding:12px;
       text-align:center;
+      color: black; /* All text black */
     }
     th { background:#7f8c8d; color:white; }
     td.student-name {
@@ -97,25 +101,12 @@
       color:#2c3e50;
       font-weight:bold;
     }
-
     /* Responsive text size */
     @media (max-width: 600px) {
-      th, td {
-        font-size: 12px;
-        padding:8px;
-      }
-      .bar-segment {
-        font-size: 10px;
-        height:30px;
-      }
-      input[type="text"] {
-        width:100%;
-        margin-bottom:5px;
-      }
-      button.load-btn {
-        width:100%;
-        margin-left:0;
-      }
+      th, td { font-size: 12px; padding:8px; }
+      .bar-segment { font-size: 10px; height:40px; }
+      input[type="text"] { width:100%; margin-bottom:5px; }
+      button.load-btn { width:100%; margin-left:0; }
     }
   </style>
 </head>
@@ -129,11 +120,11 @@
 
 <!-- Barometer -->
 <div id="barometer">
-  <div class="bar-segment" style="background:#e74c3c;">1<br>No idea</div>
-  <div class="bar-segment" style="background:#e67e22;">2<br>Unsure</div>
-  <div class="bar-segment" style="background:#f1c40f; color:#000;">3<br>I think I know</div>
-  <div class="bar-segment" style="background:#2ecc71;">4<br>I know this!</div>
-  <div class="bar-segment" style="background:#3498db;">5<br>I'm an expert!</div>
+  <div class="bar-segment" style="background:#e74c3c;">1<br>I don’t know it</div>
+  <div class="bar-segment" style="background:#e67e22;">2<br>I still need help</div>
+  <div class="bar-segment" style="background:#f1c40f;">3<br>I kind of know it</div>
+  <div class="bar-segment four">4<br>I can be successful on my own</div>
+  <div class="bar-segment five">5<br>I can teach others</div>
 </div>
 
 <div id="studentCount">Total Students: 0</div>
@@ -152,7 +143,13 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db=firebase.database();
-const colorMap={1:"#e74c3c",2:"#e67e22",3:"#f1c40f",4:"#2ecc71",5:"#3498db"};
+const colorMap={
+  1:"#e74c3c",
+  2:"#e67e22",
+  3:"#f1c40f",
+  4:"#2ecc71",  // light green
+  5:"#27ae60"   // dark green
+};
 let currentRef=null;
 
 function loadClass(){
@@ -189,11 +186,11 @@ function loadClass(){
         if(crit && crit.value){
           const color = colorMap[crit.value] || "#e74c3c";
           cell.style.backgroundColor = color;
-          cell.style.color = crit.value===3?"#000":"#fff";
+          cell.style.color = "#000"; // ALL text black
           cell.innerText = `${crit.label} (${crit.value})`;
         } else {
           cell.style.backgroundColor = "#e74c3c";
-          cell.style.color = "#fff";
+          cell.style.color = "#000";
           cell.innerText = crit ? crit.label : "-";
         }
       }
