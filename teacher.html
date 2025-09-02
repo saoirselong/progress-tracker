@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Success Tracker - Teacher Dashboard</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <style>
+    body { font-family:'Segoe UI',Tahoma,sans-serif; background:#f4f4f9; margin:0; padding:20px; display:flex; flex-direction:column; align-items:center; }
+    h1 { color:#333; }
+    .input-group { margin:10px 0; }
+    input[type="text"] { padding:10px; font-size:16px; width:250px; border-radius:5px; border:1px solid #ccc; }
+    button.load-btn { padding:10px 20px; font-size:16px; margin-left:10px; background:#4CAF50; color:white; border:none; border-radius:5px; cursor:pointer; }
+    #dashboard { width:100%; overflow-x:auto; }
+    table { border-collapse:collapse; width:90%; max-width:900px; margin-top:20px; background:white; border-radius:10px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.15); }
+    th,td { border:1px solid #ddd; padding:12px; text-align:center; }
+    th { background:#7f8c8d; color:white; }
+    td.student-name { background:#bdc3c7; color:#2c3e50; font-weight:bold; }
+  </style>
+</head>
+<body>
+
+<h1>Teacher Dashboard</h1>
+<div class="input-group">
+  <input type="text" id="classCode" placeholder="Enter Class Code">
+  <button class="load-btn" onclick="loadClass()">Load Class</button>
+</div>
+<div id="dashboard"></div>
+
+<script>
+const firebaseConfig = {
+  apiKey:"AIzaSyApvo2e6XhqcytLPZoADBX1Q9x0p7NT3mQ",
+  authDomain:"progress-tracking-31461.firebaseapp.com",
+  databaseURL:"https://progress-tracking-31461-default-rtdb.firebaseio.com",
+  projectId:"progress-tracking-31461",
+  storageBucket:"progress-tracking-31461.firebasestorage.app",
+  messagingSenderId:"293796521028",
+  appId:"1:293796521028:web:ec9b322aa4c2b89d708811"
+};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
+const colorMap={1:"#e74c3c",2:"#e67e22",3:"#f1c40f",4:"#2ecc71",5:"#3498db"};
+let currentRef=null;
+
+function loadClass(){
+  if(currentRef) currentRef.off();
+  const classCode=document.getElementById("classCode").value.trim();
+  if(!classCode){alert("Enter class code");return;}
+  const dashboard=document.getElementById("dashboard");
+  dashboard.innerHTML="<p>Loading class data...</p>";
+  const table=document.createElement("table");
+  dashboard.innerHTML="";dashboard.appendChild(table);
+  currentRef=db.ref(`classes/${classCode}`);
+  currentRef.on("value",snapshot=>{
+    const data=snapshot.val()||{};
+    table.innerHTML="<tr><th>Student</th><th>Success Criteria 1</th><th>Success Criteria 2</th><th>Success Criteria 3</th></tr>";
+    Object.keys(data).forEach(student=>{
+      const row=table.insertRow();
+      const nameCell=row.insertCell();nameCell.innerText=student;nameCell.className="student-name";
+      for(let i=1;i<=3;i++){const cell=row.insertCell();const crit=data[student][`criterion${i}`];
+        if(crit&&crit.value){const color=colorMap[crit.value]||"#e74c3c";cell.style.backgroundColor=color;cell.style.color=crit.value===3?"#000":"#fff";cell.innerText=`${crit.label} (${crit.value})`;}
+        else{cell.style.backgroundColor="#e74c3c";cell.style.color="#fff";cell.innerText=crit?crit.label:"-";}
+      }
+    });
+  });
+}
+</script>
+</body>
+</html>

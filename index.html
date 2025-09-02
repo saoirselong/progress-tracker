@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Success Tracker - Student</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f4f4f9;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 { text-align: center; color: #333; margin-top: 20px; }
+    .input-group { margin: 10px 0; }
+    input[type="text"], input[type="number"] {
+      padding: 10px;
+      font-size: 16px;
+      width: 90%;
+      max-width: 300px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button.start-btn {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin-top: 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .criterion {
+      background: white;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      width: 95%;
+      max-width: 480px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .criterion h3 { margin-bottom: 10px; color: #555; text-align: center; }
+    .critInput {
+      width: 95%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    .buttons-row {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: nowrap;
+      width: 100%;
+      overflow-x: auto;
+    }
+    .buttons-row button {
+      flex: 1 1 auto;
+      margin: 2px;
+      font-size: 14px;
+      border-radius: 10px;
+      height: 50px;
+      min-width: 0;
+      white-space: nowrap;
+      background-color: #bdc3c7;
+      color: white;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Success Criteria Tracker</h1>
+
+<div class="input-group">
+  <input type="text" id="name" placeholder="Your Name">
+</div>
+<div class="input-group">
+  <input type="text" id="classCode" placeholder="Class Code">
+</div>
+<div class="input-group">
+  <input type="number" id="grade" placeholder="Grade (7-12)" min="7" max="12">
+</div>
+<button class="start-btn" onclick="start()">Start</button>
+
+<div id="tracker" style="display:none; width:100%; max-width:480px;">
+  
+  <!-- Success Criteria 1 (Fixed) -->
+  <div class="criterion" id="crit1">
+    <h3>Success Criteria 1: Identify my typing speed</h3>
+    <div class="buttons-row">
+      <button onclick="update(1,1)" title="No idea">1</button>
+      <button onclick="update(1,2)" title="Unsure">2</button>
+      <button onclick="update(1,3)" title="I think I know">3</button>
+      <button onclick="update(1,4)" title="I know this!">4</button>
+      <button onclick="update(1,5)" title="I'm an expert!">5</button>
+    </div>
+  </div>
+
+  <!-- Success Criteria 2 -->
+  <div class="criterion" id="crit2">
+    <h3 id="crit2Label">Success Criteria 2</h3>
+    <input type="text" id="crit2Input" class="critInput" placeholder="Enter your own criterion" style="display:none;">
+    <div class="buttons-row">
+      <button onclick="update(2,1)" title="No idea">1</button>
+      <button onclick="update(2,2)" title="Unsure">2</button>
+      <button onclick="update(2,3)" title="I think I know">3</button>
+      <button onclick="update(2,4)" title="I know this!">4</button>
+      <button onclick="update(2,5)" title="I'm an expert!">5</button>
+    </div>
+  </div>
+
+  <!-- Success Criteria 3 -->
+  <div class="criterion" id="crit3">
+    <h3 id="crit3Label">Success Criteria 3</h3>
+    <input type="text" id="crit3Input" class="critInput" placeholder="Enter your own criterion" style="display:none;">
+    <div class="buttons-row">
+      <button onclick="update(3,1)" title="No idea">1</button>
+      <button onclick="update(3,2)" title="Unsure">2</button>
+      <button onclick="update(3,3)" title="I think I know">3</button>
+      <button onclick="update(3,4)" title="I know this!">4</button>
+      <button onclick="update(3,5)" title="I'm an expert!">5</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const firebaseConfig = {
+        apiKey: "AIzaSyApvo2e6XhqcytLPZoADBX1Q9x0p7NT3mQ",
+        authDomain: "progress-tracking-31461.firebaseapp.com",
+        databaseURL: "https://progress-tracking-31461-default-rtdb.firebaseio.com",
+        projectId: "progress-tracking-31461",
+        storageBucket: "progress-tracking-31461.firebasestorage.app",
+        messagingSenderId: "293796521028",
+        appId: "1:293796521028:web:ec9b322aa4c2b89d708811"
+    };
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+let studentName = "";
+let classCode = "";
+let grade = 0;
+
+const colorMap = {
+  1: "#e74c3c",  // red
+  2: "#e67e22",  // orange
+  3: "#f1c40f",  // yellow
+  4: "#2ecc71",  // light green
+  5: "#3498db"   // blue
+};
+const defaultColor = "#bdc3c7"; // grey
+
+function start() {
+  studentName = document.getElementById("name").value.trim();
+  classCode = document.getElementById("classCode").value.trim();
+  grade = parseInt(document.getElementById("grade").value);
+
+  if(studentName && classCode && grade) {
+    document.getElementById("tracker").style.display = "block";
+
+    if(grade >= 10){
+      document.getElementById("crit2Input").style.display = "block";
+      document.getElementById("crit3Input").style.display = "block";
+    }
+
+    if ("Notification" in window && Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+
+    setInterval(showReminder, 900000); // 15 min reminder
+
+  } else {
+    alert("Please enter Name, Class Code, and Grade");
+  }
+}
+
+function update(criterion, value) {
+  let label = "";
+  if(criterion === 1){
+    label = "Identify my typing speed";
+  } else if(criterion === 2){
+    label = grade >= 10 ? document.getElementById("crit2Input").value.trim() || "Success Criteria 2" : "Success Criteria 2";
+    document.getElementById("crit2Label").innerText = label;
+  } else if(criterion === 3){
+    label = grade >= 10 ? document.getElementById("crit3Input").value.trim() || "Success Criteria 3" : "Success Criteria 3";
+    document.getElementById("crit3Label").innerText = label;
+  }
+
+  db.ref(`classes/${classCode}/${studentName}/criterion${criterion}`).set({
+    label: label,
+    value: value,
+    grade: grade
+  });
+
+  const buttons = document.querySelectorAll(`#crit${criterion} button`);
+  buttons.forEach((btn) => btn.style.backgroundColor = defaultColor);
+  buttons[value-1].style.backgroundColor = colorMap[value];
+}
+
+function showReminder() {
+  if ("Notification" in window && Notification.permission === "granted") {
+    new Notification("Update Success Criteria", {
+      body: "Please review and update your success criteria!",
+      icon: "https://i.imgur.com/8QK6E0b.png"
+    });
+  } else {
+    alert("Please update your success criteria!");
+  }
+}
+</script>
+</body>
+</html>
