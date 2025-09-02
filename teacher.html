@@ -15,13 +15,15 @@
       align-items:center;
     }
     h1 { color:#333; text-align:center; }
-    .input-group { margin:10px 0; text-align:center; }
+    .input-group { margin:10px 0; text-align:center; width:100%; max-width:500px; }
     input[type="text"] {
       padding:10px;
       font-size:16px;
-      width:250px;
+      width:calc(100% - 120px);
+      max-width:350px;
       border-radius:5px;
       border:1px solid #ccc;
+      box-sizing:border-box;
     }
     button.load-btn {
       padding:10px 20px;
@@ -39,21 +41,50 @@
       font-size: 16px;
       color: #2c3e50;
       text-align: center;
+      width:100%;
+      max-width:900px;
+    }
+    #barometer {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      width:90%;
+      max-width:900px;
+    }
+    .bar-segment {
+      flex:1 1 18%;
+      min-width: 60px;
+      height: 40px;
+      border-radius: 8px;
+      color: white;
+      font-weight: bold;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      font-size: 12px;
+      margin: 2px;
+      box-sizing:border-box;
     }
     #dashboard {
       width:100%;
       display:flex;
-      justify-content:center; /* center the table */
+      justify-content:center;
       margin-top:20px;
+      box-sizing:border-box;
+      overflow-x:auto;
     }
     table {
       border-collapse:collapse;
-      width:90%;
-      max-width:900px;
+      width:100%;
+      max-width:1000px;
       background:white;
       border-radius:10px;
       overflow:hidden;
       box-shadow:0 2px 6px rgba(0,0,0,0.15);
+      min-width:600px;
     }
     th, td {
       border:1px solid #ddd;
@@ -66,6 +97,26 @@
       color:#2c3e50;
       font-weight:bold;
     }
+
+    /* Responsive text size */
+    @media (max-width: 600px) {
+      th, td {
+        font-size: 12px;
+        padding:8px;
+      }
+      .bar-segment {
+        font-size: 10px;
+        height:30px;
+      }
+      input[type="text"] {
+        width:100%;
+        margin-bottom:5px;
+      }
+      button.load-btn {
+        width:100%;
+        margin-left:0;
+      }
+    }
   </style>
 </head>
 <body>
@@ -74,6 +125,15 @@
 <div class="input-group">
   <input type="text" id="classCode" placeholder="Enter Class Code">
   <button class="load-btn" onclick="loadClass()">Load Class</button>
+</div>
+
+<!-- Barometer -->
+<div id="barometer">
+  <div class="bar-segment" style="background:#e74c3c;">1<br>No idea</div>
+  <div class="bar-segment" style="background:#e67e22;">2<br>Unsure</div>
+  <div class="bar-segment" style="background:#f1c40f; color:#000;">3<br>I think I know</div>
+  <div class="bar-segment" style="background:#2ecc71;">4<br>I know this!</div>
+  <div class="bar-segment" style="background:#3498db;">5<br>I'm an expert!</div>
 </div>
 
 <div id="studentCount">Total Students: 0</div>
