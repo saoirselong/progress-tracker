@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Success Tracker – Teacher Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Firebase compat (matches your existing setup) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+  <style>
+    :root{
+      --bg:#f4f4f9;
+      --card:#ffffff;
+      --text:#222;
+      --muted:#666;
+      --border:#e3e3e3;
+      --accent:#4CAF50;
+      --danger:#e74c3c;
+      --warn:#f39c12;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    header{
+      padding:16px 20px;
+      background:var(--card);
+      border-bottom:1px solid var(--border);
+      position:sticky; top:0; z-index:10;
+      display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    }
+    header h1{font-size:20px; margin:0; flex:1}
+    .pill{
+      padding:6px 10px; border:1px solid var(--border); border-radius:999px; color:var(--muted);
+      font-size:12px;
+    }
+
+    .container{
+      display:grid;
+      grid-template-columns: 260px 1fr 360px;
+      gap:16px;
+      padding:16px;
+    }
+    @media (max-width: 1100px){
+      .container{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:12px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.06);
+      overflow:hidden;
+    }
+    .card header{
+      background:transparent;
+      border:0;
+      padding:14px 16px;
+      display:flex; align-items:center; gap:10px;
+    }
+    .card header h2{
+      font-size:16px; margin:0; flex:1;
+    }
+    .section{
+      padding:14px 16px; border-top:1px solid var(--border);
+    }
+
+    input[type="text"], input[type="number"], select, textarea{
+      width:100%;
+      padding:10px 12px;
+      border:1px solid var(--border);
+      border-radius:8px;
+      font-size:14px;
+      color:var(--text);
+      background:white;
+    }
+    label{display:block; font-size:12px; color:var(--muted); margin-bottom:6px;}
+    .row{display:grid; grid-template-columns: 1fr 1fr; gap:10px;}
+    .row-3{display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;}
+    .row-5{display:grid; grid-template-columns: repeat(5, 1fr); gap:8px;}
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      gap:8px; padding:10px 14px; border-radius:8px;
+      font-weight:600; cursor:pointer; border:1px solid transparent; background:var(--accent); color:white;
+    }
+    .btn.secondary{ background:#e9eef0; color:#111; border-color:var(--border); }
+    .btn.warn{ background:var(--warn); color:#111; }
+    .btn.danger{ background:var(--danger); }
+    .btn:disabled{ opacity:.6; cursor:not-allowed; }
+
+    ul.class-list{ list-style:none; margin:0; padding:8px; }
+    ul.class-list li{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:10px 10px; border-radius:8px;
+      border:1px solid transparent; cursor:pointer;
+    }
+    ul.class-list li.active{ background:#eef8ff; border-color:#cfe7ff; }
+    ul.class-list li:hover{ background:#f7f7f7; }
+    .tiny{ font-size:11px; color:var(--muted); }
+
+    table{ width:100%; border-collapse:collapse; }
+    th, td{ padding:10px; border-bottom:1px solid var(--border); text-align:left; vertical-align:top; }
+    th{ background:#f7f7f7; font-size:12px; color:#333; position:sticky; top:0; z-index:1; }
+    tbody tr:hover{ background:#fafafa; }
+    .actions{ display:flex; gap:6px; flex-wrap:wrap; }
+
+    .help{
+      padding:10px 12px; border-left:3px solid #cde7d6; background:#f3fbf6; color:#235b39; font-size:12px; border-radius:6px;
+    }
+
+    .label-chip{
+      display:inline-block; padding:2px 6px; border-radius:6px; font-size:11px; background:#eef1f4; color:#333; border:1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Teacher Admin</h1>
+    <span class="pill">Realtime Firebase management</span>
+  </header>
+
+  <div class="container">
+    <!-- Left: Classes -->
+    <div class="card">
+      <header>
+        <h2>Classes</h2>
+      </header>
+      <div class="section">
+        <div class="row" style="margin-bottom:10px;">
+          <div>
+            <label>New class code</label>
+            <input id="newClassCode" type="text" placeholder="e.g. ENG10A" />
+          </div>
+          <div style="display:flex; align-items:end; gap:8px;">
+            <button class="btn" onclick="createClass()">Create</button>
+          </div>
+        </div>
+        <div class="help" style="margin-bottom:10px;">
+          Click a class to manage students. Creating a class makes an empty node at <code>classes/&lt;code&gt;</code>.
+        </div>
+        <ul id="classList" class="class-list"></ul>
+      </div>
+    </div>
+
+    <!-- Middle: Students table -->
+    <div class="card">
+      <header>
+        <h2 id="classTitle">No class selected</h2>
+        <button class="btn warn" id="deleteClassBtn" onclick="deleteCurrentClass()" disabled>Delete Class</button>
+      </header>
+      <div class="section">
+        <div class="row">
+          <div>
+            <label>Add student (name)</label>
+            <input id="addStudentName" type="text" placeholder="Student name" />
+          </div>
+          <div>
+            <label>Grade</label>
+            <input id="addStudentGrade" type="number" min="7" max="12" placeholder="7–12" />
+          </div>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn" onclick="addStudent()">Add Student</button>
+        </div>
+      </div>
+      <div class="section" style="overflow:auto; max-height:60vh;">
+        <table id="studentsTable">
+          <thead>
+            <tr>
+              <th style="min-width:160px;">Student</th>
+              <th>Grade</th>
+              <th>Criterion 1</th>
+              <th>Criterion 2</th>
+              <th>Criterion 3</th>
+              <th style="min-width:160px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="studentsBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Right: Edit student -->
+    <div class="card">
+      <header>
+        <h2>Edit Student</h2>
+      </header>
+      <div class="section">
+        <div class="tiny" id="editHint">Select a student from the table.</div>
+        <div id="editForm" style="display:none;">
+          <div class="row">
+            <div>
+              <label>Student name</label>
+              <input id="editName" type="text" />
+            </div>
+            <div>
+              <label>Grade</label>
+              <input id="editGrade" type="number" min="7" max="12" />
+            </div>
+          </div>
+
+          <div style="margin-top:10px;">
+            <div class="label-chip">Use these labels/values to update criteria</div>
+          </div>
+
+          <div class="section" style="border:none; padding-left:0; padding-right:0;">
+            <div class="row">
+              <div>
+                <label>Criterion 1 Label</label>
+                <input id="c1Label" type="text" placeholder="Identify my typing speed" />
+              </div>
+              <div>
+                <label>Criterion 1 Value (1–5)</label>
+                <input id="c1Value" type="number" min="1" max="5" />
+              </div>
+            </div>
+            <div class="row" style="margin-top:8px;">
+              <div>
+                <label>Criterion 2 Label</label>
+                <input id="c2Label" type="text" placeholder="Success Criteria 2" />
+              </div>
+              <div>
+                <label>Criterion 2 Value (1–5)</label>
+                <input id="c2Value" type="number" min="1" max="5" />
+              </div>
+            </div>
+            <div class="row" style="margin-top:8px;">
+              <div>
+                <label>Criterion 3 Label</label>
+                <input id="c3Label" type="text" placeholder="Success Criteria 3" />
+              </div>
+              <div>
+                <label>Criterion 3 Value (1–5)</label>
+                <input id="c3Value" type="number" min="1" max="5" />
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:8px; margin-top:12px;">
+            <button class="btn" onclick="saveStudent()">Save Changes</button>
+            <button class="btn secondary" onclick="cancelEdit()">Cancel</button>
+            <button class="btn danger" style="margin-left:auto;" onclick="deleteStudent()">Delete Student</button>
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="help">
+          Renaming moves the student’s record to the new name and deletes the old node in the class.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---- Firebase config (same project you already use)
+    const firebaseConfig = {
+      apiKey: "AIzaSyApvo2e6XhqcytLPZoADBX1Q9x0p7NT3mQ",
+      authDomain: "progress-tracking-31461.firebaseapp.com",
+      databaseURL: "https://progress-tracking-31461-default-rtdb.firebaseio.com",
+      projectId: "progress-tracking-31461",
+      storageBucket: "progress-tracking-31461.firebasestorage.app",
+      messagingSenderId: "293796521028",
+      appId: "1:293796521028:web:ec9b322aa4c2b89d708811"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // ---- State
+    let selectedClass = null;
+    let classListenerRef = null; // listener for selected class
+    let editing = { name: null, data: null }; // current student
+
+    // ---- Helpers
+    function byId(id){ return document.getElementById(id); }
+    function confirmAction(message){ return window.confirm(message); }
+
+    function setSelectedClass(code){
+      selectedClass = code;
+      byId('classTitle').textContent = code ? `Class: ${code}` : 'No class selected';
+      byId('deleteClassBtn').disabled = !code;
+
+      // detach previous
+      if(classListenerRef){ classListenerRef.off(); classListenerRef = null; }
+      byId('studentsBody').innerHTML = '';
+      editing = {name:null,data:null};
+      byId('editForm').style.display = 'none';
+      byId('editHint').style.display = 'block';
+
+      if(!code) return;
+
+      // attach new
+      classListenerRef = db.ref(`classes/${code}`);
+      classListenerRef.on('value', snap => {
+        const data = snap.val() || {};
+        renderStudentsTable(data);
+      });
+    }
+
+    function renderClassList(classesObj){
+      const ul = byId('classList');
+      ul.innerHTML = '';
+      const codes = Object.keys(classesObj || {}).sort((a,b) => a.localeCompare(b));
+      if(codes.length === 0){
+        const li = document.createElement('li');
+        li.innerHTML = `<span class="tiny">No classes yet. Create one above.</span>`;
+        ul.appendChild(li);
+        return;
+      }
+      codes.forEach(code => {
+        const li = document.createElement('li');
+        li.className = (code === selectedClass) ? 'active' : '';
+        li.innerHTML = `
+          <div>
+            <strong>${code}</strong>
+            <div class="tiny">${Object.keys(classesObj[code] || {}).length} students</div>
+          </div>
+          <div class="actions">
+            <button class="btn secondary" onclick="event.stopPropagation(); setSelectedClass('${code}')">Open</button>
+            <button class="btn warn" onclick="event.stopPropagation(); deleteClass('${code}')">Delete</button>
+          </div>
+        `;
+        li.onclick = () => setSelectedClass(code);
+        ul.appendChild(li);
+      });
+    }
+
+    function renderStudentsTable(classData){
+      const tbody = byId('studentsBody');
+      tbody.innerHTML = '';
+      const students = Object.keys(classData || {}).sort((a,b) => a.localeCompare(b));
+      students.forEach(name => {
+        const s = classData[name] || {};
+        const c1 = s.criterion1 || {};
+        const c2 = s.criterion2 || {};
+        const c3 = s.criterion3 || {};
+        const grade = (c1.grade || s.grade || '');
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${name}</strong></td>
+          <td>${grade ?? ''}</td>
+          <td>
+            <div><span class="label-chip">${c1.label ?? ''}</span></div>
+            <div class="tiny">Value: ${c1.value ?? '-'}</div>
+          </td>
+          <td>
+            <div><span class="label-chip">${c2.label ?? ''}</span></div>
+            <div class="tiny">Value: ${c2.value ?? '-'}</div>
+          </td>
+          <td>
+            <div><span class="label-chip">${c3.label ?? ''}</span></div>
+            <div class="tiny">Value: ${c3.value ?? '-'}</div>
+          </td>
+          <td class="actions">
+            <button class="btn secondary" onclick="startEdit('${encodeURIComponent(name)}')">Edit</button>
+            <button class="btn danger" onclick="removeStudent('${encodeURIComponent(name)}')">Delete</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // ---- Live classes list
+    db.ref('classes').on('value', snap => {
+      renderClassList(snap.val() || {});
+      // keep current selection if still present
+      if(selectedClass && !(snap.val() || {})[selectedClass]){
+        setSelectedClass(null);
+      }
+    });
+
+    // ---- Class actions
+    function createClass(){
+      const code = byId('newClassCode').value.trim();
+      if(!code){ alert('Enter a class code'); return; }
+      db.ref(`classes/${code}`).get().then(snap => {
+        if(snap.exists()){ alert('That class already exists.'); return; }
+        return db.ref(`classes/${code}`).set({}); // empty class
+      }).then(()=>{
+        byId('newClassCode').value = '';
+        setSelectedClass(code);
+      }).catch(err => alert(err.message));
+    }
+
+    function deleteClass(code){
+      if(!code) return;
+      if(!confirmAction(`Delete class "${code}" and ALL its students?`)) return;
+      db.ref(`classes/${code}`).remove().catch(err => alert(err.message));
+      if(selectedClass === code) setSelectedClass(null);
+    }
+
+    function deleteCurrentClass(){
+      if(selectedClass) deleteClass(selectedClass);
+    }
+
+    // ---- Student actions
+    function addStudent(){
+      if(!selectedClass){ alert('Select a class first.'); return; }
+      const name = byId('addStudentName').value.trim();
+      const grade = parseInt(byId('addStudentGrade').value, 10);
+
+      if(!name){ alert('Enter a student name'); return; }
+      if(!(grade >=7 && grade <=12)){ alert('Enter a valid grade 7–12'); return; }
+
+      const base = `classes/${selectedClass}/${name}`;
+      // set minimal node with grade on each criterion so your dashboards see it
+      const payload = {
+        criterion1: { label: "Identify my typing speed", value: 0, grade },
+        criterion2: { label: "Success Criteria 2", value: 0, grade },
+        criterion3: { label: "Success Criteria 3", value: 0, grade }
+      };
+      db.ref(base).set(payload).then(()=>{
+        byId('addStudentName').value = '';
+        byId('addStudentGrade').value = '';
+      }).catch(err => alert(err.message));
+    }
+
+    function startEdit(encodedName){
+      if(!selectedClass) return;
+      const name = decodeURIComponent(encodedName);
+      db.ref(`classes/${selectedClass}/${name}`).get().then(snap=>{
+        if(!snap.exists()){ alert('Student not found'); return; }
+        editing.name = name;
+        editing.data = snap.val() || {};
+
+        byId('editHint').style.display = 'none';
+        byId('editForm').style.display = 'block';
+
+        byId('editName').value = name;
+        byId('editGrade').value = (editing.data.criterion1?.grade || editing.data.grade || '') ?? '';
+
+        byId('c1Label').value = editing.data.criterion1?.label ?? 'Identify my typing speed';
+        byId('c1Value').value = editing.data.criterion1?.value ?? '';
+        byId('c2Label').value = editing.data.criterion2?.label ?? 'Success Criteria 2';
+        byId('c2Value').value = editing.data.criterion2?.value ?? '';
+        byId('c3Label').value = editing.data.criterion3?.label ?? 'Success Criteria 3';
+        byId('c3Value').value = editing.data.criterion3?.value ?? '';
+      });
+    }
+
+    function saveStudent(){
+      if(!selectedClass || !editing.name) return;
+
+      const newName = byId('editName').value.trim();
+      const newGrade = parseInt(byId('editGrade').value, 10);
+
+      const c1Label = byId('c1Label').value.trim() || 'Identify my typing speed';
+      const c1Value = clampInt(byId('c1Value').value, 0, 5);
+      const c2Label = byId('c2Label').value.trim() || 'Success Criteria 2';
+      const c2Value = clampInt(byId('c2Value').value, 0, 5);
+      const c3Label = byId('c3Label').value.trim() || 'Success Criteria 3';
+      const c3Value = clampInt(byId('c3Value').value, 0, 5);
+
+      if(!newName){ alert('Student name cannot be empty'); return; }
+      if(!(newGrade >=7 && newGrade <=12)){ alert('Grade must be 7–12'); return; }
+
+      const newPayload = {
+        criterion1: { label: c1Label, value: c1Value, grade: newGrade },
+        criterion2: { label: c2Label, value: c2Value, grade: newGrade },
+        criterion3: { label: c3Label, value: c3Value, grade: newGrade }
+      };
+
+      const oldPath = `classes/${selectedClass}/${editing.name}`;
+      const newPath = `classes/${selectedClass}/${newName}`;
+
+      // If name changed, move node (copy then remove)
+      const promise = (editing.name !== newName)
+        ? db.ref(newPath).set(newPayload).then(()=> db.ref(oldPath).remove())
+        : db.ref(oldPath).set(newPayload);
+
+      promise.then(()=>{
+        editing.name = newName;
+        editing.data = newPayload;
+        alert('Saved');
+      }).catch(err => alert(err.message));
+    }
+
+    function deleteStudent(){
+      if(!selectedClass || !editing.name) return;
+      if(!confirmAction(`Delete student "${editing.name}" from ${selectedClass}?`)) return;
+      db.ref(`classes/${selectedClass}/${editing.name}`).remove().then(()=>{
+        cancelEdit();
+      }).catch(err => alert(err.message));
+    }
+
+    function removeStudent(encodedName){
+      if(!selectedClass) return;
+      const name = decodeURIComponent(encodedName);
+      if(!confirmAction(`Delete student "${name}" from ${selectedClass}?`)) return;
+      db.ref(`classes/${selectedClass}/${name}`).remove().catch(err => alert(err.message));
+    }
+
+    function cancelEdit(){
+      editing = {name:null,data:null};
+      byId('editForm').style.display = 'none';
+      byId('editHint').style.display = 'block';
+    }
+
+    function clampInt(val, min, max){
+      const n = parseInt(val, 10);
+      if(isNaN(n)) return 0;
+      return Math.max(min, Math.min(max, n));
+    }
+  </script>
+</body>
+</html>
