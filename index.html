@@ -136,14 +136,14 @@
 
 <script>
 const firebaseConfig = {
-        apiKey: "AIzaSyApvo2e6XhqcytLPZoADBX1Q9x0p7NT3mQ",
-        authDomain: "progress-tracking-31461.firebaseapp.com",
-        databaseURL: "https://progress-tracking-31461-default-rtdb.firebaseio.com",
-        projectId: "progress-tracking-31461",
-        storageBucket: "progress-tracking-31461.firebasestorage.app",
-        messagingSenderId: "293796521028",
-        appId: "1:293796521028:web:ec9b322aa4c2b89d708811"
-    };
+  apiKey: "AIzaSyApvo2e6XhqcytLPZoADBX1Q9x0p7NT3mQ",
+  authDomain: "progress-tracking-31461.firebaseapp.com",
+  databaseURL: "https://progress-tracking-31461-default-rtdb.firebaseio.com",
+  projectId: "progress-tracking-31461",
+  storageBucket: "progress-tracking-31461.firebasestorage.app",
+  messagingSenderId: "293796521028",
+  appId: "1:293796521028:web:ec9b322aa4c2b89d708811"
+};
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
@@ -157,7 +157,7 @@ const colorMap = {
   2: "#e67e22",  // orange
   3: "#f1c40f",  // yellow
   4: "#90ee90",  // light green
-  5: "#006400"   // blue
+  5: "#006400"   // dark green
 };
 const defaultColor = "#bdc3c7"; // grey
 
@@ -174,15 +174,48 @@ function start() {
       document.getElementById("crit3Input").style.display = "block";
     }
 
+    // ✅ Load saved data if student already exists
+    loadStudentData();
+
     if ("Notification" in window && Notification.permission !== "granted") {
       Notification.requestPermission();
     }
 
     setInterval(showReminder, 900000); // 15 min reminder
-
   } else {
     alert("Please enter Name, Class Code, and Grade");
   }
+}
+
+function loadStudentData() {
+  db.ref(`classes/${classCode}/${studentName}`).once("value").then(snapshot => {
+    if(snapshot.exists()) {
+      const data = snapshot.val();
+
+      for(let i=1; i<=3; i++) {
+        if(data[`criterion${i}`]) {
+          const { label, value } = data[`criterion${i}`];
+
+          // restore labels
+          if(i===2 && label) {
+            document.getElementById("crit2Label").innerText = label;
+            document.getElementById("crit2Input").value = label;
+          }
+          if(i===3 && label) {
+            document.getElementById("crit3Label").innerText = label;
+            document.getElementById("crit3Input").value = label;
+          }
+
+          // restore button color
+          const buttons = document.querySelectorAll(`#crit${i} button`);
+          buttons.forEach((btn) => btn.style.backgroundColor = defaultColor);
+          if(value >=1 && value <=5) {
+            buttons[value-1].style.backgroundColor = colorMap[value];
+          }
+        }
+      }
+    }
+  });
 }
 
 function update(criterion, value) {
@@ -221,6 +254,3 @@ function showReminder() {
 </script>
 </body>
 </html>
-
-
-
