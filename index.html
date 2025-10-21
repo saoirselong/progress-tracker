@@ -96,7 +96,7 @@
   
   <!-- Success Criteria 1 (Fixed) -->
   <div class="criterion" id="crit1">
-    <h3>Success Criteria 1: Identify my typing speed</h3>
+    <h3>Success Criteria 1</h3>
     <div class="buttons-row">
       <button onclick="update(1,1)" title="- I Don't know it">1</button>
       <button onclick="update(1,2)" title="- I still need help">2</button>
@@ -221,7 +221,7 @@ function loadStudentData() {
 function update(criterion, value) {
   let label = "";
   if(criterion === 1){
-    label = "Identify my typing speed";
+    label = "Success Criteria 1";
   } else if(criterion === 2){
     label = grade >= 10 ? document.getElementById("crit2Input").value.trim() || "Success Criteria 2" : "Success Criteria 2";
     document.getElementById("crit2Label").innerText = label;
@@ -254,3 +254,4 @@ function showReminder() {
 </script>
 </body>
 </html>
+
